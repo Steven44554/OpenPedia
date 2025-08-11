@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenPedia — modern & glasig</title>
+    <meta name="description"
+        content="OpenPedia: Glasige Recherche-App mit Wikipedia- und OpenLibrary-Suche, Vorschau-Tools, Login/Registrierung, gespeicherten Ergebnissen, Sprache & Theme." />
+    <style>
+        /* ====== Design-Token ====== */
+        :root {
+            --bg: #0b0f14;
+            --fg: #e8eef7;
+            --muted: #9db0c7;
+            --brand: #7dd6ff;
+            --brand-2: #8a7dff;
+            --card: #ffffff14;
+            --card-strong: #ffffff22;
+            --border: #ffffff26;
+            --shadow: 0 18px 60px #00000066, 0 4px 18px #00000044;
+            --radius: 16px;
+            --blur: 16px;
+            --speed: 420ms;
+            /* länger */
+            --speed-slow: 980ms;
+            /* länger */
+            --easing-out: cubic-bezier(.2, .9, .2, 1);
+            --easing-in: cubic-bezier(.4, 0, .2, 1);
+        }
+
+        /* ====== Light / "Whiteboard" ====== */
+        html[data-theme="light"] {
+            --bg: #f5f7fb;
+            --fg: #0b1220;
+            --muted: #3b4a63;
+            --brand: #3fb6ff;
+            --brand-2: #6a5bff;
+            --card: #00000006;
+            --card-strong: #0000000e;
+            --border: #0000001a;
+            --shadow: 0 18px 60px #00000022, 0 4px 18px #0000001a;
+        }
+
+        /* ====== Base ====== */
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            color: var(--fg);
+            background:
+                radial-gradient(1200px 800px at 10% -10%, #1a2230 0%, transparent 50%) no-repeat,
+                radial-gradient(900px 700px at 110% 10%, #141b26 0%, transparent 45%) no-repeat,
+                linear-gradient(180deg, #0a0e13, #0b1017 36%, #0b0f14 100%);
+            overflow-y: auto;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background var(--speed-slow) var(--easing-out), color var(--speed) var(--easing-out);
+        }
+
+        html[data-theme="light"] body {
+            background:
+                radial-gradient(1200px 800px at 10% -10%, #eaf3ff 0%, transparent 50%) no-repeat,
+                radial-gradient(900px 700px at 110% 10%, #f2ecff 0%, transparent 45%) no-repeat,
+                linear-gradient(180deg, #ffffff, #f7f9fc 36%, #f5f7fb 100%);
+        }
+
+        /* Glows */
+        .glow {
+            position: fixed;
+            inset: -20vmax;
+            filter: blur(90px);
+            z-index: -1;
+            pointer-events: none;
+            background:
+                radial-gradient(closest-side, #1e7fff33, transparent 70%) 15% 20% / 40vmax 40vmax no-repeat,
+                radial-gradient(closest-side, #9b5cff33, transparent 70%) 85% 10% / 35vmax 35vmax no-repeat,
+                radial-gradient(closest-side, #00c2ff22, transparent 70%) 50% 90% / 50vmax 50vmax no-repeat;
+            animation: drift 24s var(--easing-out) infinite alternate;
+        }
+
+        html[data-theme="light"] .glow {
+            background:
+                radial-gradient(closest-side, #8fd6ff55, transparent 70%) 15% 20% / 40vmax 40vmax no-repeat,
+                radial-gradient(closest-side, #b4a7ff55, transparent 70%) 85% 10% / 35vmax 35vmax no-repeat,
+                radial-gradient(closest-side, #7ad4ff40, transparent 70%) 50% 90% / 50vmax 50vmax no-repeat;
+        }
+
+        @keyframes drift {
+            0% {
+                transform: translate(-2%, -2%) scale(1);
+                opacity: .9;
+            }
+
+            100% {
+                transform: translate(2%, 2%) scale(1.08);
+                opacity: 1;
+            }
+        }
+
+        /* ====== Header ====== */
+        header {
+            max-width: 1120px;
+            margin: 26px auto 10px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--fg);
+            user-select: none;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #93e2ff40, #948dff38);
+            border: 1px solid #ffffff35;
+            box-shadow: inset 0 0 40px #ffffff22, 0 8px 40px #75d9ff3a, 0 2px 10px #0008;
+            backdrop-filter: blur(6px) saturate(120%);
+            display: grid;
+            place-items: center;
+        }
+
+        html[data-theme="light"] .logo {
+            border-color: #00000012;
+            box-shadow: inset 0 0 40px #ffffff66, 0 8px 40px #6cc9ff40, 0 2px 10px #0002;
+        }
+
+        .logo svg {
+            width: 24px;
+            height: 24px;
+            opacity: .95;
+            filter: drop-shadow(0 1px 2px #000a)
+        }
+
+        .brand-title {
+            font-weight: 800;
+            letter-spacing: .3px;
+            font-size: 19px
+        }
+
+        .tagline {
+            opacity: .72;
+            font-size: 13px
+        }
+
+        .controls,
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toggle,
+        .pill {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 8px 12px;
+            border-radius: 999px;
+            backdrop-filter: blur(var(--blur));
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform var(--speed) var(--easing-out), background var(--speed), color var(--speed);
+            user-select: none;
+        }
+
+        .pill:active,
+        .toggle:active {
+            transform: scale(.98)
+        }
+
+        .pill[aria-pressed="true"] {
+            background: #22e39a22;
+            border-color: #22e39a66
+        }
+
+        .btn {
+            all: unset;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 999px;
+            color: var(--fg)
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: #ffffff1a;
+            border: 1px solid var(--border);
+            font-weight: 700;
+            color: var(--fg)
+        }
+
+        /* ====== Search Card ====== */
+        .wrap {
+            max-width: 1120px;
+            margin: 12px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: linear-gradient(180deg, var(--card), #0000);
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) + 10px);
+            backdrop-filter: blur(var(--blur));
+            box-shadow: var(--shadow);
+            padding: 22px;
+            position: relative;
+            overflow: clip;
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: -40% -10%;
+            pointer-events: none;
+            background: conic-gradient(from 120deg, #ffffff20, transparent 20% 80%, #ffffff14);
+            mix-blend-mode: screen;
+            opacity: .5;
+            transform: translateY(-30%);
+            animation: sheen 9s linear infinite;
+        }
+
+        @keyframes sheen {
+            to {
+                transform: translateY(40%)
+            }
+        }
+
+        .search {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            background: var(--card-strong);
+            border: 1px solid var(--border);
+            padding: 14px 16px;
+            border-radius: 16px;
+            backdrop-filter: blur(calc(var(--blur) + 2px));
+            transition: transform var(--speed) var(--easing-out), box-shadow var(--speed) var(--easing-out), background var(--speed), border-color var(--speed);
+            will-change: transform, box-shadow;
+        }
+
+        .input:focus-within {
+            transform: translateY(-1px) scale(1.007);
+            box-shadow: 0 22px 60px #00000066, 0 8px 24px #0000004a;
+            background: #ffffff22;
+            border-color: #8bd9ff66;
+        }
+
+        .input:focus-within::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 18px;
+            background: radial-gradient(110px 28px at 10% 50%, #8bd9ff33, transparent 60%), radial-gradient(110px 28px at 90% 50%, #8a7dff33, transparent 60%);
+            filter: blur(8px);
+            pointer-events: none;
+            opacity: 1;
+            animation: breathe 2.6s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: .85
+            }
+
+            50% {
+                transform: scale(1.02);
+                opacity: 1
+            }
+        }
+
+        .search input[type="search"] {
+            flex: 1;
+            background: transparent;
+            border: 0;
+            outline: 0;
+            color: var(--fg);
+            font-size: 16px;
+        }
+
+        .kbd {
+            font-size: 12px;
+            opacity: .65;
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: #00000022
+        }
+
+        button.primary {
+            border: 0;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+            color: #081018;
+            font-weight: 800;
+            letter-spacing: .3px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 16px 42px #7dd6ff5a, inset 0 0 0 1px #ffffff55;
+            transition: transform var(--speed) var(--easing-out), filter var(--speed), box-shadow var(--speed);
+        }
+
+        button.primary:hover {
+            transform: translateY(-1px) scale(1.015)
+        }
+
+        button.primary:active {
+            transform: translateY(0) scale(.985);
+            filter: saturate(.9)
+        }
+
+        .hints {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-top: 10px
+        }
+
+        .chip {
+            font-size: 12px;
+            opacity: .9;
+            padding: 7px 10px;
+            border-radius: 999px;
+            color: var(--fg);
+            background: #ffffff16;
+            border: 1px solid var(--border);
+            transition: transform var(--speed) var(--easing-out), background var(--speed);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .chip:hover {
+            transform: translateY(-1px);
+            background: #ffffff22
+        }
+
+        .chip:active {
+            transform: scale(.96)
+        }
+
+        .subtle-title {
+            font-size: 12px;
+            opacity: .8;
+            margin: 12px 4px -2px
+        }
+
+        /* ====== Results ====== */
+        .results {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+            padding: 18px 4px 4px;
+            align-items: start;
+        }
+
+        .card-item {
+            grid-column: span 12;
+            background: linear-gradient(180deg, #ffffff12, #ffffff0b);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(var(--blur));
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 86px 1fr;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+            transform: translateY(12px);
+            opacity: 0;
+            animation: rise-in var(--speed-slow) var(--easing-out) forwards;
+        }
+
+        @keyframes rise-in {
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        .thumb {
+            width: 86px;
+            height: 86px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0f141c;
+            border: 1px solid var(--border);
+            display: grid;
+            place-items: center;
+        }
+
+        .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            opacity: .85
+        }
+
+        .badge {
+            padding: 5px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #ffffff16;
+        }
+
+        .title {
+            margin: 0 0 6px;
+            font-size: 18px;
+            line-height: 1.25;
+            letter-spacing: .2px
+        }
+
+        .snippet {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 0 0 10px
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .actions a,
+        .actions button {
+            font-size: 13px;
+            padding: 8px 11px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #ffffff14;
+            color: var(--fg);
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform var(--speed) var(--easing-out), background var(--speed);
+        }
+
+        .actions a:hover,
+        .actions button:hover {
+            transform: translateY(-1px);
+            background: #ffffff1f
+        }
+
+        .save-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--fg)
+        }
+
+        .save-btn[data-saved="true"] {
+            background: #22e39a20;
+            border-color: #22e39a55
+        }
+
+        /* Skeleton */
+        .skeleton {
+            position: relative;
+            overflow: hidden;
+            background: #ffffff12;
+            border-radius: var(--radius)
+        }
+
+        .skeleton::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, #ffffff28, transparent);
+            transform: translateX(-100%);
+            animation: shimmer 1.6s linear infinite;
+        }
+
+        @keyframes shimmer {
+            to {
+                transform: translateX(100%)
+            }
+        }
+
+        /* ====== Preview Modal ====== */
+        dialog {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, #0f1622f2, #0c121bf2);
+            color: var(--fg);
+            border-radius: 22px;
+            padding: 0;
+            width: min(780px, 92vw);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(6px);
+            animation: pop-in var(--speed-slow) var(--easing-out);
+        }
+
+        html[data-theme="light"] dialog {
+            background: linear-gradient(180deg, #ffffffee, #f6f9ffee)
+        }
+
+        dialog::backdrop {
+            background: rgba(5, 10, 15, .55);
+            backdrop-filter: blur(3px)
+        }
+
+        @keyframes pop-in {
+            from {
+                transform: translateY(12px) scale(.985);
+                opacity: 0
+            }
+
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1
+            }
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .modal-body {
+            padding: 14px 18px 18px;
+            display: grid;
+            gap: 14px
+        }
+
+        .modal-grid {
+            display: grid;
+            gap: 12px
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .x {
+            all: unset;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #ffffff14;
+            color: var(--fg)
+        }
+
+        .x:active {
+            transform: scale(.97)
+        }
+
+        .summary {
+            color: #c6d3e6
+        }
+
+        html[data-theme="light"] .summary {
+            color: #2a3a5a
+        }
+
+        .small {
+            font-size: 12px;
+            opacity: .8
+        }
+
+        .progress {
+            height: 6px;
+            border-radius: 6px;
+            background: #ffffff12;
+            border: 1px solid var(--border);
+            overflow: hidden
+        }
+
+        .progress>i {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--brand), var(--brand-2));
+            transition: width 300ms linear
+        }
+
+        /* ====== Saved view ====== */
+        #saved-view {
+            display: none;
+            margin-top: 16px
+        }
+
+        #saved-empty {
+            opacity: .7;
+            text-align: center;
+            padding: 20px
+        }
+
+        /* ====== Settings ====== */
+        #settings .row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        #settings select {
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--fg)
+        }
+
+        /* ====== Footer ====== */
+        footer {
+            max-width: 1120px;
+            margin: 26px auto 40px;
+            padding: 0 20px;
+            opacity: .65;
+            font-size: 13px
+        }
+
+        /* ====== Responsive ====== */
+        @media (min-width:680px) {
+            .card-item {
+                grid-column: span 6
+            }
+        }
+
+        @media (min-width:1000px) {
+            .card-item {
+                grid-column: span 4
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+
+            .glow,
+            .card::after,
+            .input:focus-within::before {
+                animation: none
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow" aria-hidden="true"></div>
+
+    <header>
+        <a class="brand" href="#" aria-label="Startseite">
+            <div class="logo" aria-hidden="true">
+                <!-- Glasiges Prisma/Sechseck -->
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="g1" x1="0" y1="0" x2="24" y2="24">
+                            <stop offset="0" stop-color="#B6F0FF" stop-opacity=".85" />
+                            <stop offset="1" stop-color="#9D93FF" stop-opacity=".85" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" fill="url(#g1)" />
+                </svg>
+            </div>
+            <div>
+                <div class="brand-title">OpenPedia</div>
+                <div class="tagline" id="i-tagline">modern & glasig</div>
+            </div>
+        </a>
+
+        <div class="nav">
+            <button id="btn-saved" class="pill" type="button" role="button" aria-pressed="false">
+                <span id="i-saved-btn">Gespeichert</span>
+            </button>
+
+            <label class="toggle" title="Wikipedia ein-/ausschalten">
+                <input type="checkbox" id="source-wiki" checked />
+                <span>Wikipedia</span>
+            </label>
+            <label class="toggle" title="OpenLibrary ein-/ausschalten">
+                <input type="checkbox" id="source-ol" checked />
+                <span>OpenLibrary</span>
+            </label>
+
+            <button id="btn-settings" class="pill" type="button" aria-label="Einstellungen">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor"
+                        d="M12 8a4 4 0 1 1 0 8a4 4 0 0 1 0-8m8.94 3a7.93 7.93 0 0 0-.34-1l2.12-1.65l-2-3.46l-2.5 1a8.18 8.18 0 0 0-1.73-1l-.38-2.65h-4l-.38 2.65a8.18 8.18 0 0 0-1.73 1l-2.5-1l-2 3.46L3.4 10a7.93 7.93 0 0 0-.34 1l-2.06.66v4l2.06.66c.1.35.21.69.34 1l-1.29 1.01l2 3.46l2.5-1a8.18 8.18 0 0 0 1.73 1l.38 2.65h4l.38-2.65a8.18 8.18 0 0 0 1.73-1l2.5 1l2-3.46L20.6 17c.13-.32.24-.66.34-1l2.06-.66v-4z" />
+                </svg>
+                <span id="i-settings">Einstellungen</span>
+            </button>
+
+            <button id="btn-auth" class="pill" type="button">
+                <span id="i-login">Anmelden</span>
+            </button>
+            <div id="user-chip" class="pill" style="display:none">
+                <div class="avatar" id="user-avatar">U</div>
+                <span id="user-name">User</span>
+                <button id="btn-logout" class="btn" title="Abmelden" type="button"><span
+                        id="i-logout">Abmelden</span></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="wrap">
+        <section class="card" role="search">
+            <div class="search">
+                <label class="input" style="grid-column:1/2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor"
+                            d="M10 2a8 8 0 0 1 6.32 12.9l5.39 5.39-1.41 1.41-5.39-5.39A8 8 0 1 1 10 2m0 2a6 6 0 1 0 0 12A6 6 0 0 0 10 4" />
+                    </svg>
+                    <input id="q" type="search" placeholder="Begriff eingeben …" autocomplete="off" list="hintList"
+                        aria-label="Suche" />
+                    <span class="kbd">/</span>
+                </label>
+                <button class="primary" id="go" style="grid-column:2/3" type="button"><span
+                        id="i-search-btn">Suchen</span></button>
+            </div>
+
+            <div class="hints" id="chips" aria-live="polite"></div>
+            <div id="recent-wrap" style="display:none">
+                <div class="subtle-title" id="i-recent-title">Zuletzt gesucht</div>
+                <div class="hints" id="recent" aria-live="polite"></div>
+            </div>
+            <datalist id="hintList"></datalist>
+        </section>
+
+        <section id="results" class="results" aria-live="polite" aria-busy="false"></section>
+
+        <!-- Gespeicherte Ergebnisse -->
+        <section id="saved-view" class="card">
+            <h3 id="i-saved-head" style="margin:0 0 10px">Deine gespeicherten Ergebnisse</h3>
+            <div id="saved-list" class="results" style="padding-top:10px"></div>
+            <div id="saved-empty">Noch nichts gespeichert. Tippe auf ⭐ „Speichern“ bei einem Ergebnis.</div>
+        </section>
+    </main>
+
+    <!-- Vorschau -->
+    <dialog id="modal">
+        <div class="modal-head">
+            <h3 id="m-title" style="margin:0;font-size:18px;">Vorschau</h3>
+            <button class="x" id="m-close" aria-label="Schließen" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor"
+                        d="m12 10.586 4.95-4.95 1.414 1.414L13.414 12l4.95 4.95-1.414 1.414L12 13.414l-4.95 4.95-1.414-1.414L10.586 12l-4.95-4.95L7.05 5.636z" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="meta" id="m-meta"></div>
+
+            <div class="controls-row">
+                <label id="i-preview-length-lbl">Vorschau-Länge:
+                    <select id="m-length">
+                        <option value="short" id="i-short">kurz</option>
+                        <option value="medium" id="i-medium" selected>mittel</option>
+                        <option value="long" id="i-long">lang</option>
+                    </select>
+                </label>
+                <label id="i-autoclose-lbl">Automatisch schließen (Sek.):
+                    <input id="m-duration" type="range" min="0" max="30" step="5" value="0" />
+                    <span class="small" id="m-duration-label">nie</span>
+                </label>
+            </div>
+
+            <div class="progress" title="Auto-Schließen Fortschritt" style="display:none"><i id="m-progress"></i></div>
+
+            <p id="m-summary" class="summary">Lade Zusammenfassung…</p>
+
+            <div class="controls-row">
+                <button id="m-copy-cite" class="pill" type="button"><span id="i-copy-cite">Zitat
+                        kopieren</span></button>
+                <button id="m-copy-link" class="pill" type="button"><span id="i-copy-link">Link kopieren</span></button>
+                <button id="m-copy-sum" class="pill" type="button"><span id="i-copy-summary">Zusammenfassung
+                        kopieren</span></button>
+                <button id="m-save" class="pill" type="button">⭐ <span id="i-save">Speichern</span></button>
+                <a id="m-open" class="pill" target="_blank" rel="noopener"><span id="i-open-full">Vollständigen Artikel
+                        öffnen</span></a>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Auth -->
+    <dialog id="auth">
+        <div class="modal-head">
+            <h3 id="auth-title" style="margin:0;font-size:18px;">Anmelden</h3>
+            <button class="x" id="auth-close" aria-label="Schließen" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor"
+                        d="m12 10.586 4.95-4.95 1.414 1.414L13.414 12l4.95 4.95-1.414 1.414L12 13.414l-4.95 4.95-1.414-1.414L10.586 12l-4.95-4.95L7.05 5.636z" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="controls-row">
+                <button id="tab-login" class="pill" type="button"><span id="i-tab-login">Anmelden</span></button>
+                <button id="tab-register" class="pill" type="button"><span
+                        id="i-tab-register">Registrieren</span></button>
+            </div>
+            <form id="auth-form" class="modal-grid">
+                <label id="i-user-lbl">Benutzername
+                    <input id="auth-user" name="user" required minlength="3" />
+                </label>
+                <label id="i-pass-lbl">Passwort
+                    <input id="auth-pass" name="pass" type="password" required minlength="3" />
+                </label>
+                <button class="primary" id="auth-submit" type="submit"><span id="i-continue">Weiter</span></button>
+                <div id="auth-msg" class="small" role="status"></div>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- Settings -->
+    <dialog id="settings">
+        <div class="modal-head">
+            <h3 id="i-settings-head" style="margin:0;font-size:18px">Einstellungen</h3>
+            <button class="x" id="settings-close" aria-label="Schließen" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor"
+                        d="m12 10.586 4.95-4.95 1.414 1.414L13.414 12l4.95 4.95-1.414 1.414L12 13.414l-4.95 4.95-1.414-1.414L10.586 12l-4.95-4.95L7.05 5.636z" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <label for="sel-lang" id="i-lang-lbl">Sprache</label>
+                <select id="sel-lang">
+                    <option value="de">Deutsch</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="sel-theme" id="i-theme-lbl">Theme</label>
+                <select id="sel-theme">
+                    <option value="dark">Darkboard</option>
+                    <option value="light">Whiteboard</option>
+                </select>
+            </div>
+            <div class="row">
+                <button class="primary" id="settings-save" type="button"><span
+                        id="i-save-settings">Speichern</span></button>
+            </div>
+        </div>
+    </dialog>
+
+    <footer id="i-footer">
+        OpenPedia ist unabhängig. Es nutzt die öffentlichen APIs von Wikipedia & OpenLibrary. Deine Logins/Speicherungen
+        werden lokal im Browser gespeichert.
+    </footer>
+
+    <datalist id="hintList"></datalist>
+
+    <script>
+        // ====== I18N ======
+        const I18N = {
+            de: {
+                tagline: "modern & glasig",
+                saved_btn: "Gespeichert",
+                settings: "Einstellungen",
+                login: "Anmelden",
+                logout: "Abmelden",
+                search_btn: "Suchen",
+                placeholder: "Begriff eingeben …",
+                recent_title: "Zuletzt gesucht",
+                saved_head: "Deine gespeicherten Ergebnisse",
+                saved_empty: 'Noch nichts gespeichert. Tippe auf ⭐ „Speichern“ bei einem Ergebnis.',
+                no_hits: "Keine Treffer. Probiere ein anderes Stichwort.",
+                modal_title: "Vorschau",
+                preview_length: "Vorschau-Länge:",
+                short: "kurz",
+                medium: "mittel",
+                long: "lang",
+                autoclose: "Automatisch schließen (Sek.):",
+                never: "nie",
+                copy_cite: "Zitat kopieren",
+                copy_link: "Link kopieren",
+                copy_summary: "Zusammenfassung kopieren",
+                save: "Speichern",
+                saved: "Gespeichert",
+                open_full: "Vollständigen Artikel öffnen",
+                auth_login: "Anmelden",
+                auth_register: "Registrieren",
+                auth_title_login: "Anmelden",
+                auth_title_register: "Registrieren",
+                user_label: "Benutzername",
+                pass_label: "Passwort",
+                continue: "Weiter",
+                invalid_auth: "Ungültige Anmeldedaten.",
+                user_exists: "Benutzername existiert bereits.",
+                min_3: "Bitte mindestens 3 Zeichen.",
+                registered: "Registriert & angemeldet",
+                logged_in: "Angemeldet",
+                please_login_save: "Bitte melde dich an, um zu speichern.",
+                please_login_saved: "Bitte melde dich an, um Gespeichertes zu sehen.",
+                settings_head: "Einstellungen",
+                lang_label: "Sprache",
+                theme_label: "Theme",
+                save_settings: "Speichern",
+                footer: "OpenPedia ist unabhängig. Es nutzt die öffentlichen APIs von Wikipedia & OpenLibrary. Deine Logins/Speicherungen werden lokal im Browser gespeichert.",
+                chips: ["Künstliche Intelligenz", "Weltall", "Zweiter Weltkrieg", "Photosynthese", "Renaissance"]
+            },
+            en: {
+                tagline: "modern & glassy",
+                saved_btn: "Saved",
+                settings: "Settings",
+                login: "Sign in",
+                logout: "Sign out",
+                search_btn: "Search",
+                placeholder: "Type a topic…",
+                recent_title: "Recent searches",
+                saved_head: "Your saved results",
+                saved_empty: "Nothing saved yet. Click ⭐ “Save” on a result.",
+                no_hits: "No results. Try a different query.",
+                modal_title: "Preview",
+                preview_length: "Preview length:",
+                short: "short",
+                medium: "medium",
+                long: "long",
+                autoclose: "Auto close (sec):",
+                never: "never",
+                copy_cite: "Copy citation",
+                copy_link: "Copy link",
+                copy_summary: "Copy summary",
+                save: "Save",
+                saved: "Saved",
+                open_full: "Open full article",
+                auth_login: "Sign in",
+                auth_register: "Register",
+                auth_title_login: "Sign in",
+                auth_title_register: "Register",
+                user_label: "Username",
+                pass_label: "Password",
+                continue: "Continue",
+                invalid_auth: "Invalid credentials.",
+                user_exists: "Username already exists.",
+                min_3: "Please use at least 3 characters.",
+                registered: "Registered & signed in",
+                logged_in: "Signed in",
+                please_login_save: "Please sign in to save.",
+                please_login_saved: "Please sign in to view saved items.",
+                settings_head: "Settings",
+                lang_label: "Language",
+                theme_label: "Theme",
+                save_settings: "Save",
+                footer: "OpenPedia is independent. It uses public APIs from Wikipedia & OpenLibrary. Your logins/saves are stored locally in your browser.",
+                chips: ["Artificial Intelligence", "Space", "World War II", "Photosynthesis", "Renaissance"]
+            }
+        };
+
+        // ====== Helpers ======
+        const $ = (sel, ctx = document) => ctx.querySelector(sel);
+        const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+        const resultsEl = $('#results');
+        const qEl = $('#q');
+        const hintList = $('#hintList');
+
+        const STORE_KEY = 'openpedia_users';
+        const SESSION_KEY = 'openpedia_session';
+        const PREFS_KEY = 'openpedia_prefs';
+
+        function getPrefs() {
+            try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || { lang: 'de', theme: 'dark' } } catch { return { lang: 'de', theme: 'dark' } }
+        }
+        function setPrefs(p) { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); }
+
+        function t(key) { const { lang } = getPrefs(); return (I18N[lang] && I18N[lang][key]) || I18N.de[key] || key }
+
+        // Keyboard: focus search
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+                e.preventDefault(); qEl.focus();
+            }
+        });
+
+        // ====== Quick chips (by language) ======
+        function renderChips() {
+            const wrap = $('#chips');
+            wrap.innerHTML = '';
+            I18N[getPrefs().lang].chips.forEach(label => {
+                const d = document.createElement('div');
+                d.className = 'chip'; d.textContent = label; d.dataset.q = label;
+                d.addEventListener('click', () => { qEl.value = label; doSearch(); });
+                wrap.appendChild(d);
+            });
+        }
+
+        // ====== Autocomplete (Wikipedia prefix search) ======
+        let hintAbort = null;
+        qEl.addEventListener('input', async () => {
+            const term = qEl.value.trim();
+            if (hintAbort) { hintAbort.abort(); }
+            if (!term) { hintList.innerHTML = ''; return; }
+            try {
+                hintAbort = new AbortController();
+                const url = new URL('https://de.wikipedia.org/w/api.php');
+                url.search = new URLSearchParams({ action: 'query', list: 'prefixsearch', pssearch: term, pslimit: 8, format: 'json', origin: '*' });
+                const r = await fetch(url, { signal: hintAbort.signal });
+                const j = await r.json();
+                hintList.innerHTML = (j?.query?.prefixsearch || []).map(p => `<option value="${escapeHtml(p.title)}"></option>`).join('');
+            } catch { }
+        });
+
+        // ====== Search ======
+        $('#go').addEventListener('click', doSearch);
+        qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+        async function doSearch() {
+            const term = qEl.value.trim();
+            if (!term) return;
+            const useWiki = $('#source-wiki').checked;
+            const useOL = $('#source-ol').checked;
+
+            resultsEl.setAttribute('aria-busy', 'true');
+            resultsEl.innerHTML = skeleton(9);
+
+            const tasks = [];
+            if (useWiki) tasks.push(fetchWikipedia(term));
+            if (useOL) tasks.push(fetchOpenLibrary(term));
+
+            let items = [];
+            try {
+                const all = await Promise.allSettled(tasks);
+                for (const p of all) { if (p.status === 'fulfilled') items = items.concat(p.value); }
+            } catch (e) { console.error(e); }
+
+            items.sort((a, b) => (b.score || 0) - (a.score || 0) || a.title.localeCompare(b.title, 'de'));
+
+            if (items.length === 0) {
+                resultsEl.innerHTML = `<div class="card-item" style="grid-column:span 12; text-align:center"><div class="snippet">${escapeHtml(t('no_hits'))}</div></div>`;
+            } else {
+                resultsEl.innerHTML = items.map(renderItem).join('');
+                $$('.card-item').forEach((el, i) => el.style.animationDelay = (i * 60) + 'ms');
+                $$('.btn-preview').forEach(btn => btn.addEventListener('click', (e) => openPreview(JSON.parse(e.currentTarget.dataset.item))));
+                $$('.save-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const item = JSON.parse(e.currentTarget.dataset.item);
+                        if (!ensureLoggedIn()) { showAuth('login', t('please_login_save')); return; }
+                        toggleSave(item);
+                        updateSaveButton(e.currentTarget, isSaved(item.url));
+                    });
+                    updateSaveButton(btn, isSaved(JSON.parse(btn.dataset.item).url));
+                });
+            }
+            resultsEl.removeAttribute('aria-busy');
+            hideSavedView();
+
+            // store recent search if logged in
+            storeRecentSearch(term);
+            renderRecent();
+        }
+
+        // ====== Sources ======
+        async function fetchWikipedia(term) {
+            const url = new URL('https://de.wikipedia.org/w/api.php');
+            url.search = new URLSearchParams({ action: 'query', list: 'search', srsearch: term, srlimit: 20, format: 'json', origin: '*' });
+            const r = await fetch(url);
+            const j = await r.json();
+            const hits = j?.query?.search || [];
+            return await Promise.all(hits.map(async h => {
+                const title = h.title;
+                let img = null, desc = null, pageUrl = 'https://de.wikipedia.org/wiki/' + encodeURIComponent(title);
+                try {
+                    const sr = await fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
+                    if (sr.ok) {
+                        const sj = await sr.json();
+                        img = sj?.thumbnail?.source || null;
+                        desc = sj?.description || null;
+                        pageUrl = sj?.content_urls?.desktop?.page || pageUrl;
+                    }
+                } catch { }
+                return {
+                    source: 'Wikipedia',
+                    title,
+                    snippet: stripTags(h.snippet || desc || ''),
+                    url: pageUrl,
+                    image: img,
+                    score: h.score ?? h.size ?? 0,
+                    preview: { type: 'wiki', title }
+                };
+            }));
+        }
+
+        async function fetchOpenLibrary(term) {
+            const r = await fetch('https://openlibrary.org/search.json?q=' + encodeURIComponent(term) + '&limit=18');
+            const j = await r.json();
+            const docs = j?.docs || [];
+            return docs.map(d => {
+                const title = d.title ?? '(ohne Titel)';
+                const author = (d.author_name || []).slice(0, 2).join(', ');
+                const year = d.first_publish_year || d.publish_year?.[0] || '';
+                const cover = d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null;
+                const workKey = d.key;
+                return {
+                    source: 'OpenLibrary',
+                    title,
+                    snippet: [author, year].filter(Boolean).join(' • ') || 'Buch / Veröffentlichung',
+                    url: workKey ? 'https://openlibrary.org' + workKey : 'https://openlibrary.org',
+                    image: cover,
+                    score: d.edition_count ?? d.ratings_average ?? 0,
+                    preview: { type: 'ol', workKey, title, author, year, cover }
+                };
+            });
+        }
+
+        // ====== Rendering ======
+        function renderItem(item) {
+            const img = item.image ? `<img loading="lazy" src="${item.image}" alt="">` :
+                `<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 4h18v2H3V4m0 4h12v2H3V8m0 4h18v2H3v-2m0 4h12v2H3v-2z"/></svg>`;
+            const data = escapeHtmlAttr(JSON.stringify(item));
+            return `
+      <article class="card-item">
+        <div class="thumb">${img}</div>
+        <div>
+          <h3 class="title">${escapeHtml(item.title)}</h3>
+          <div class="meta"><span class="badge">${item.source}</span></div>
+          <p class="snippet">${escapeHtml(item.snippet || '')}</p>
+          <div class="actions">
+            <a href="${item.url}" target="_blank" rel="noopener">${escapeHtml(t('open_full'))}</a>
+            <button class="btn-preview" data-item='${data}' type="button'>${escapeHtml(t('modal_title'))}</button>
+            <button class="save-btn" data-item='${data}' aria-pressed="false" type="button">
+              ⭐ <span>${escapeHtml(t('save'))}</span>
+            </button>
+          </div>
+        </div>
+      </article>`;
+        }
+
+        function skeleton(n = 8) {
+            return Array.from({ length: n }).map(() => `
+        <div class="card-item" style="animation:none; opacity:1;">
+          <div class="thumb skeleton"></div>
+          <div>
+            <div class="skeleton" style="height:18px; width:60%; margin:2px 0 10px; border-radius:8px"></div>
+            <div class="skeleton" style="height:12px; width:90%; margin:6px 0; border-radius:8px"></div>
+            <div class="skeleton" style="height:12px; width:70%; margin:6px 0 10px; border-radius:8px"></div>
+            <div style="display:flex; gap:10px">
+              <div class="skeleton" style="height:34px; width:120px; border-radius:10px"></div>
+              <div class="skeleton" style="height:34px; width:120px; border-radius:10px"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+        }
+
+        // ====== Preview Modal ======
+        const modal = $('#modal'), mTitle = $('#m-title'), mSummary = $('#m-summary'), mMeta = $('#m-meta'), mOpen = $('#m-open');
+        const mLen = $('#m-length'), mDur = $('#m-duration'), mDurLabel = $('#m-duration-label'), mProg = $('#m-progress');
+        const mCopyCite = $('#m-copy-cite'), mCopyLink = $('#m-copy-link'), mCopySum = $('#m-copy-sum'), mSave = $('#m-save');
+        let currentPreviewItem = null;
+        let fullExtract = '';
+        let closeTimer = null, progressTimer = null, progressStart = 0, progressTotal = 0;
+
+        $('#m-close').addEventListener('click', () => modal.close());
+        mDur.addEventListener('input', () => { const v = Number(mDur.value); mDurLabel.textContent = v ? (v + 's') : t('never'); setupAutoClose(v); });
+        mLen.addEventListener('change', () => applyLength());
+
+        function applyLength() {
+            const len = mLen.value;
+            const text = (fullExtract || '').trim();
+            const clamp = len === 'short' ? 200 : len === 'medium' ? 460 : 1200;
+            mSummary.textContent = text.length <= clamp ? text : text.slice(0, clamp).replace(/\s+\S*$/, '') + ' …';
+        }
+        function setupAutoClose(seconds) {
+            if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+            if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+            $('.progress').style.display = seconds ? '' : 'none';
+            mProg.style.width = '0%';
+            if (!seconds) return;
+            progressStart = Date.now(); progressTotal = seconds * 1000;
+            progressTimer = setInterval(() => {
+                const elapsed = Date.now() - progressStart;
+                const pct = Math.min(100, (elapsed / progressTotal) * 100);
+                mProg.style.width = pct.toFixed(1) + '%';
+                if (pct >= 100) { clearInterval(progressTimer); progressTimer = null; }
+            }, 100);
+            closeTimer = setTimeout(() => { try { modal.close(); } catch { } }, seconds * 1000);
+        }
+
+        async function openPreview(item) {
+            currentPreviewItem = item;
+            mTitle.textContent = t('modal_title');
+            mMeta.innerHTML = `<span class="badge">${item.source}</span>`;
+            mSummary.textContent = '…';
+            mOpen.href = item.url;
+            mSave.disabled = false;
+            $('#i-save').textContent = isSaved(item.url) ? t('saved') : t('save');
+
+            try {
+                if (item.preview?.type === 'wiki') {
+                    const r = await fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(item.preview.title));
+                    const j = await r.json();
+                    fullExtract = j.extract || '';
+                } else if (item.preview?.type === 'ol') {
+                    let desc = '';
+                    if (item.preview.workKey) {
+                        try {
+                            const r = await fetch('https://openlibrary.org' + item.preview.workKey + '.json');
+                            if (r.ok) {
+                                const j = await r.json();
+                                desc = typeof j.description === 'string' ? j.description : (j.description?.value || '');
+                            }
+                        } catch { }
+                    }
+                    fullExtract = (desc || `${item.preview.author ? 'Autor(en): ' + item.preview.author + '. ' : ''}${item.preview.year ? 'Erstveröffentlichung: ' + item.preview.year + '. ' : ''}`).trim();
+                } else { fullExtract = ''; }
+            } catch { fullExtract = ''; }
+
+            mSummary.textContent = fullExtract || '—';
+            applyLength();
+            setupAutoClose(Number(mDur.value));
+
+            mCopyCite.onclick = () => copyToast(`„${item.title}“. ${item.source}. ${item.url}`);
+            mCopyLink.onclick = () => copyToast(item.url);
+            mCopySum.onclick = () => copyToast(mSummary.textContent);
+
+            mSave.onclick = () => {
+                if (!ensureLoggedIn()) { showAuth('login', t('please_login_save')); return; }
+                toggleSave(item);
+                $('#i-save').textContent = isSaved(item.url) ? t('saved') : t('save');
+                renderSaved();
+                $$('.save-btn').forEach(btn => {
+                    const it = JSON.parse(btn.dataset.item);
+                    if (it.url === item.url) updateSaveButton(btn, isSaved(it.url));
+                });
+            };
+
+            if (typeof modal.showModal === 'function') modal.showModal();
+            else alert(mSummary.textContent);
+        }
+
+        function copyToast(text) {
+            navigator.clipboard.writeText(text || '').then(() => toast('✔')).catch(() => toast('✖'));
+        }
+        function toast(msg) {
+            const tDiv = document.createElement('div');
+            tDiv.textContent = msg;
+            Object.assign(tDiv.style, {
+                position: 'fixed', left: '50%', bottom: '28px', transform: 'translateX(-50%)',
+                background: 'var(--card)', border: '1px solid var(--border)', padding: '10px 14px',
+                borderRadius: '12px', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow)', zIndex: 9999, color: 'var(--fg)'
+            });
+            document.body.appendChild(tDiv);
+            setTimeout(() => tDiv.style.opacity = '0', 1200);
+            setTimeout(() => tDiv.remove(), 1700);
+        }
+
+        // ====== Auth & Saved (LocalStorage) ======
+        function loadUsers() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {} } catch { return {} } }
+        function saveUsers(users) { localStorage.setItem(STORE_KEY, JSON.stringify(users)); }
+        function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) } catch { return null } }
+        function setSession(u) { if (u) localStorage.setItem(SESSION_KEY, JSON.stringify(u)); else localStorage.removeItem(SESSION_KEY); updateAuthUI(); }
+
+        function currentUser() {
+            const s = getSession(); if (!s) return null;
+            const users = loadUsers(); return users[s.user] ? s.user : null;
+        }
+
+        function ensureLoggedIn() { return !!currentUser(); }
+
+        function userSaved() {
+            const u = currentUser(); if (!u) return new Set();
+            const users = loadUsers();
+            return new Set(users[u]?.saved || []);
+        }
+        function userRecent() {
+            const u = currentUser(); if (!u) return [];
+            const users = loadUsers();
+            return users[u]?.recent || [];
+        }
+        function isSaved(url) {
+            if (!url) return false;
+            const u = currentUser(); if (!u) return false;
+            const users = loadUsers();
+            return (users[u]?.saved || []).includes(url);
+        }
+        function toggleSave(item) {
+            const u = currentUser(); if (!u) return;
+            const users = loadUsers();
+            users[u] ||= { pass: '', saved: [], recent: [] };
+            const list = users[u].saved;
+            const idx = list.indexOf(item.url);
+            if (idx >= 0) list.splice(idx, 1);
+            else list.push(item.url);
+            saveUsers(users);
+        }
+        function storeRecentSearch(term) {
+            const u = currentUser(); if (!u) return;
+            const users = loadUsers();
+            users[u] ||= { pass: '', saved: [], recent: [] };
+            const arr = users[u].recent || [];
+            const withoutDup = [term, ...arr.filter(x => x.toLowerCase() !== term.toLowerCase())];
+            users[u].recent = withoutDup.slice(0, 8);
+            saveUsers(users);
+        }
+
+        function updateSaveButton(btn, saved) {
+            btn.dataset.saved = saved ? "true" : "false";
+            btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
+            btn.querySelector('span').textContent = saved ? t('saved') : t('save');
+        }
+
+        async function renderSaved() {
+            const container = $('#saved-list');
+            const empty = $('#saved-empty');
+            const urls = Array.from(userSaved());
+            container.innerHTML = '';
+            if (urls.length === 0) { empty.textContent = t('saved_empty'); empty.style.display = ''; return; }
+            empty.style.display = 'none';
+
+            const cards = await Promise.all(urls.map(async url => {
+                let title = url, source = 'Link', img = null, snippet = '';
+                try {
+                    if (/wikipedia\.org\/wiki\//i.test(url)) {
+                        source = 'Wikipedia';
+                        const titlePart = decodeURIComponent(url.split('/wiki/')[1] || '').replace(/_/g, ' ');
+                        title = titlePart || 'Wikipedia';
+                        const r = await fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(titlePart));
+                        if (r.ok) { const j = await r.json(); img = j?.thumbnail?.source || null; snippet = j?.description || ''; }
+                    } else if (/openlibrary\.org\/works\//i.test(url)) {
+                        source = 'OpenLibrary';
+                        const key = '/' + url.split('/').slice(-2).join('/');
+                        const r = await fetch('https://openlibrary.org' + key + '.json');
+                        if (r.ok) { const j = await r.json(); title = j.title || title; snippet = (typeof j.description === 'string' ? j.description : j.description?.value) || ''; }
+                    }
+                } catch { }
+                const item = { title, url, source, image: img, snippet };
+                return renderItem(item);
+            }));
+
+            container.innerHTML = cards.join('');
+            $$('.btn-preview', container).forEach(btn => btn.addEventListener('click', (e) => openPreview(JSON.parse(e.currentTarget.dataset.item))));
+            $$('.save-btn', container).forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const item = JSON.parse(e.currentTarget.dataset.item);
+                    toggleSave(item);
+                    updateSaveButton(e.currentTarget, isSaved(item.url));
+                    renderSaved();
+                });
+                updateSaveButton(btn, isSaved(JSON.parse(btn.dataset.item).url));
+            });
+        }
+
+        function renderRecent() {
+            const wrap = $('#recent-wrap');
+            const list = $('#recent');
+            const u = currentUser();
+            if (!u) { wrap.style.display = 'none'; return; }
+            const items = userRecent();
+            if (items.length === 0) { wrap.style.display = 'none'; return; }
+            wrap.style.display = '';
+            list.innerHTML = '';
+            items.forEach(q => {
+                const d = document.createElement('div');
+                d.className = 'chip'; d.textContent = q;
+                d.addEventListener('click', () => { qEl.value = q; doSearch(); });
+                list.appendChild(d);
+            });
+            $('#i-recent-title').textContent = t('recent_title');
+        }
+
+        function showSavedView() {
+            if (!ensureLoggedIn()) { showAuth('login', t('please_login_saved')); return; }
+            const sec = $('#saved-view');
+            const active = sec.style.display !== 'none' && sec.style.display !== '';
+            if (active) {
+                sec.style.display = 'none';
+                $('#btn-saved').setAttribute('aria-pressed', 'false');
+            } else {
+                sec.style.display = '';
+                $('#btn-saved').setAttribute('aria-pressed', 'true');
+                $('#i-saved-head').textContent = t('saved_head');
+                $('#saved-empty').textContent = t('saved_empty');
+                renderSaved();
+                window.scrollTo({ top: sec.offsetTop - 12, behavior: 'smooth' });
+            }
+        }
+        function hideSavedView() {
+            $('#saved-view').style.display = 'none';
+            $('#btn-saved').setAttribute('aria-pressed', 'false');
+        }
+
+        $('#btn-saved').addEventListener('click', showSavedView);
+
+        // ====== Auth UI ======
+        const authDialog = $('#auth');
+        const authTitle = $('#auth-title');
+        const tabLogin = $('#tab-login');
+        const tabRegister = $('#tab-register');
+        const authForm = $('#auth-form');
+        const authUser = $('#auth-user');
+        const authPass = $('#auth-pass');
+        const authMsg = $('#auth-msg');
+        let authMode = 'login';
+
+        $('#btn-auth').addEventListener('click', () => showAuth('login'));
+        $('#auth-close').addEventListener('click', () => authDialog.close());
+        $('#btn-logout').addEventListener('click', () => { setSession(null); updateAuthUI(); renderRecent(); hideSavedView(); });
+
+        tabLogin.addEventListener('click', () => setAuthMode('login'));
+        tabRegister.addEventListener('click', () => setAuthMode('register'));
+        authForm.addEventListener('submit', (e) => { e.preventDefault(); submitAuth(); });
+
+        function showAuth(mode = 'login', msg = '') {
+            setAuthMode(mode);
+            authMsg.textContent = msg;
+            if (typeof authDialog.showModal === 'function') authDialog.showModal();
+            else alert('Please update your browser.');
+        }
+        function setAuthMode(mode) {
+            authMode = mode;
+            authTitle.textContent = mode === 'login' ? t('auth_title_login') : t('auth_title_register');
+            $('#i-tab-login').textContent = t('auth_login');
+            $('#i-tab-register').textContent = t('auth_register');
+            authMsg.textContent = '';
+            authUser.value = ''; authPass.value = '';
+            setTimeout(() => authUser.focus(), 50);
+        }
+        function submitAuth() {
+            const u = authUser.value.trim();
+            const p = authPass.value;
+            if (u.length < 3 || p.length < 3) { authMsg.textContent = t('min_3'); return; }
+            const users = loadUsers();
+            if (authMode === 'register') {
+                if (users[u]) { authMsg.textContent = t('user_exists'); return; }
+                users[u] = { pass: p, saved: [], recent: [] };
+                saveUsers(users);
+                setSession({ user: u });
+                authDialog.close(); toast(t('registered'));
+            } else {
+                if (!users[u] || users[u].pass !== p) { authMsg.textContent = t('invalid_auth'); return; }
+                setSession({ user: u });
+                authDialog.close(); toast(t('logged_in'));
+            }
+            updateAuthUI(); renderRecent();
+        }
+
+        function updateAuthUI() {
+            const u = currentUser();
+            if (u) {
+                $('#btn-auth').style.display = 'none';
+                $('#user-chip').style.display = '';
+                $('#user-name').textContent = u;
+                $('#user-avatar').textContent = (u[0] || 'U').toUpperCase();
+            } else {
+                $('#btn-auth').style.display = '';
+                $('#user-chip').style.display = 'none';
+            }
+        }
+
+        // ====== Settings ======
+        const settingsDlg = $('#settings');
+        $('#btn-settings').addEventListener('click', () => openSettings());
+        $('#settings-close').addEventListener('click', () => settingsDlg.close());
+        $('#settings-save').addEventListener('click', () => saveSettings());
+
+        function openSettings() {
+            const prefs = getPrefs();
+            $('#sel-lang').value = prefs.lang;
+            $('#sel-theme').value = prefs.theme;
+            if (typeof settingsDlg.showModal === 'function') settingsDlg.showModal();
+            else alert('Settings not supported by your browser.');
+            applyText(); // make sure dialog is also translated
+        }
+        function saveSettings() {
+            const lang = $('#sel-lang').value;
+            const theme = $('#sel-theme').value;
+            setPrefs({ lang, theme });
+            applyText();
+            applyTheme();
+            settingsDlg.close();
+        }
+
+        function applyTheme() {
+            const { theme } = getPrefs();
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        function applyText() {
+            // header
+            $('#i-tagline').textContent = t('tagline');
+            $('#i-saved-btn').textContent = t('saved_btn');
+            $('#i-settings').textContent = t('settings');
+            $('#i-login').textContent = t('login');
+            $('#i-logout').textContent = t('logout');
+
+            // search
+            qEl.placeholder = t('placeholder');
+            $('#i-search-btn').textContent = t('search_btn');
+            $('#i-recent-title').textContent = t('recent_title');
+
+            // saved section
+            $('#i-saved-head').textContent = t('saved_head');
+            $('#saved-empty').textContent = t('saved_empty');
+
+            // modal
+            $('#m-title').textContent = t('modal_title');
+            $('#i-preview-length-lbl').firstChild.textContent = t('preview_length') + ' ';
+            $('#i-short').textContent = t('short');
+            $('#i-medium').textContent = t('medium');
+            $('#i-long').textContent = t('long');
+            $('#i-autoclose-lbl').firstChild.textContent = t('autoclose') + ' ';
+            $('#m-duration-label').textContent = t('never');
+            $('#i-copy-cite').textContent = t('copy_cite');
+            $('#i-copy-link').textContent = t('copy_link');
+            $('#i-copy-summary').textContent = t('copy_summary');
+            $('#i-save').textContent = t('save');
+            $('#i-open-full').textContent = t('open_full');
+
+            // auth
+            $('#i-tab-login').textContent = t('auth_login');
+            $('#i-tab-register').textContent = t('auth_register');
+            $('#auth-title').textContent = (authMode === 'login' ? t('auth_title_login') : t('auth_title_register'));
+            $('#i-user-lbl').childNodes[0].nodeValue = t('user_label') + ' ';
+            $('#i-pass-lbl').childNodes[0].nodeValue = t('pass_label') + ' ';
+            $('#i-continue').textContent = t('continue');
+
+            // settings dialog
+            $('#i-settings-head').textContent = t('settings_head');
+            $('#i-lang-lbl').textContent = t('lang_label');
+            $('#i-theme-lbl').textContent = t('theme_label');
+            $('#i-save-settings').textContent = t('save_settings');
+
+            // footer
+            $('#i-footer').textContent = t('footer');
+
+            // chips
+            renderChips();
+        }
+
+        // ====== Utilities ======
+        function stripTags(html) { return html?.replace(/<[^>]+>/g, '') ?? '' }
+        function escapeHtml(s) { return s?.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) ?? '' }
+        function escapeHtmlAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;') }
+
+        // ====== Init ======
+        window.addEventListener('load', () => {
+            // prefs -> theme/lang
+            applyTheme();
+            applyText();
+            updateAuthUI();
+            renderRecent();
+            // default chips + default search
+            qEl.value = 'Photosynthese';
+            doSearch();
+        });
+    </script>
+</body>
+
+</html>
