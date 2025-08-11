@@ -1,0 +1,1 @@
+OpenPedia is a modern, glass-inspired research app. Search Wikipedia and OpenLibrary in one place, open quick previews with adjustable length, and save what matters. Switch between Darkboard and Whiteboard, choose English or German, and keep a tidy history of your recent searches. Simple, fast, and privacy-friendly.
